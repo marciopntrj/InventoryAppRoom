@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+//Marcio Pinto
 package com.example.inventory
 
 import android.content.Context.INPUT_METHOD_SERVICE
@@ -21,6 +22,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
+import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
@@ -70,6 +72,15 @@ class AddItemFragment : Fragment() {
         )
     }
 
+    private fun bind(item: Item) {
+        val price = "%.2f".format(item.itemPrice)
+        binding.apply {
+            itemName.setText(item.itemName, TextView.BufferType.SPANNABLE)
+            itemPrice.setText(price, TextView.BufferType.SPANNABLE)
+            itemCount.setText(item.quantityInStock.toString(), TextView.BufferType.SPANNABLE)
+            saveAction.setOnClickListener { updateItem() }
+        }
+    }
     /**
      * Inserts the new Item into database and navigates up to list fragment.
      */
@@ -85,6 +96,18 @@ class AddItemFragment : Fragment() {
         }
     }
 
+    private fun updateItem() {
+        if (isEntryValid()) {
+            viewModel.updateItem(
+                this.navigationArgs.itemId,
+                this.binding.itemName.text.toString(),
+                this.binding.itemPrice.text.toString(),
+                this.binding.itemCount.text.toString()
+            )
+            val action = AddItemFragmentDirections.actionAddItemFragmentToItemListFragment()
+            findNavController().navigate(action)
+        }
+    }
     /**
      * Called when the view is created.
      * The itemId Navigation argument determines the edit item  or add new item.
@@ -93,8 +116,16 @@ class AddItemFragment : Fragment() {
      */
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        binding.saveAction.setOnClickListener {
-            addNewItem()
+        val id = navigationArgs.itemId
+        if (id > 0) {
+            viewModel.retrieveItem(id).observe(this.viewLifecycleOwner) { selectedItem ->
+                item = selectedItem
+                bind(item)
+            }
+        } else {
+            binding.saveAction.setOnClickListener {
+                addNewItem()
+            }
         }
     }
 
